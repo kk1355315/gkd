@@ -37,13 +37,15 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
       - name: write gkd keystore
+        if: ${{ inputs.build_type != 'debug' }}
         run: echo ${{ secrets.GKD_STORE_FILE_BASE64 }} | base64 --decode > ${{ github.workspace }}/gkd.jks
 
       - run: chmod 777 ./gradlew
       - name: build APK
         run: |
           if [ "$BUILD_TYPE" = "debug" ]; then
-            ./gradlew app:assembleGkdDebug
+            env -u GKD_STORE_FILE -u GKD_STORE_PASSWORD -u GKD_KEY_ALIAS -u GKD_KEY_PASSWORD \
+              ./gradlew app:assembleGkdDebug
           else
             ./gradlew app:assembleGkdRelease
           fi
