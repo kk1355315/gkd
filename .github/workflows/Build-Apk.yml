@@ -2,6 +2,15 @@ name: Build-Apk
 
 on:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: APK 类型
+        required: true
+        default: debug
+        type: choice
+        options:
+          - debug
+          - release
 
   push:
     branches:
@@ -31,8 +40,15 @@ jobs:
         run: echo ${{ secrets.GKD_STORE_FILE_BASE64 }} | base64 --decode > ${{ github.workspace }}/gkd.jks
 
       - run: chmod 777 ./gradlew
-      - run: ./gradlew app:assembleGkdRelease
+      - name: build APK
+        run: |
+          if [ "$BUILD_TYPE" = "debug" ]; then
+            ./gradlew app:assembleGkdDebug
+          else
+            ./gradlew app:assembleGkdRelease
+          fi
         env:
+          BUILD_TYPE: ${{ inputs.build_type || 'release' }}
           GKD_GITHUB_COOKIE: ${{ secrets.GKD_GITHUB_COOKIE }}
           GKD_API_AUTH_TOKEN: ${{ secrets.GKD_API_AUTH_TOKEN }}
           GKD_STORE_FILE: ${{ github.workspace }}/gkd.jks
@@ -43,8 +59,9 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
+          name: gkd-apk
           archive: false
-          path: app/build/outputs/apk/gkd/release/*.apk
+          path: app/build/outputs/apk/gkd/${{ inputs.build_type || 'release' }}/*.apk
 
       - uses: actions/upload-artifact@v7
         with:
